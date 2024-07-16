@@ -1,5 +1,5 @@
 import pygame
-from random import randint
+from random import randint, choice
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -8,7 +8,9 @@ run = True
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GREEN = (71, 216, 100)
+DGREEN = (0, 125, 0)
 BLUE = (13, 123, 255)
+BROWN = (185, 122, 87)
 
 size = (800, 800)
 screen = pygame.display.set_mode(size)
@@ -27,14 +29,8 @@ for i in range(50):
         else:
             Map[-1].append(1)
 
-sprites = pygame.transform.scale(pygame.image.load('DATA\SPRITES\Sprites.png'), [16, 64])
-good = sprites.subsurface(pygame.Rect(0, 0, 16, 16))
-bad = sprites.subsurface(pygame.Rect(0, 16, 16, 16))
-tree = sprites.subsurface(pygame.Rect(0, 32, 16, 16))
-bush = sprites.subsurface(pygame.Rect(0, 48, 16, 16))
-
-max_bush_count = 50
-max_tree_count = 50
+max_bush_count = 50 
+max_tree_count = 75
 bush_count = 0
 tree_count = 0
 
@@ -44,16 +40,53 @@ while tree_count < max_tree_count:
         tree_count += 1
         Map[x][y] = 2
 
+while bush_count < max_bush_count:
+    x, y = randint(0, 49), randint(0, 49)
+    if Map[x][y] == 0:
+        bush_count += 1
+        Map[x][y] = 3
+
 class Good():
-    def __init__(self, x, y):
+    def __init__(self, x, y, gender, color, speed):
         self.rect = pygame.Rect(x*16, y*16, 16, 16)
-        self.sprite = good
         self.hunger = 100
         self.thirst = 100
-        self.gender = randint(0, 1)
+        self.gender = gender
+        self.speed = speed
+        if gender == 'M':
+            self.color = color
+        elif gender == 'F':
+            self.color = 0
 
     def draw(self):
-        screen.blit(self.sprite, self.rect)
+        if self.gender == 'M':
+            pygame.draw.circle(screen, (self.color, self.color, self.color), self.rect.center, 8)
+        elif self.gender == 'F':
+            pygame.draw.circle(screen, (self.color, self.color, self.color), self.rect.center, 8, 3)
+
+    def move(self, trn_x, trn_y):
+        self.rect.x += trn_x*16
+        self.rect.y += trn_y*16
+
+    def move_random(self):
+        trn_x = 0
+        trn_y = 0
+        while trn_x == trn_y == 0:
+            trn_x = randint(-1, 1)
+            trn_y = randint(-1, 1)
+        self.rect.x += trn_x*16
+        self.rect.y += trn_y*16
+
+max_good_count = 1
+good_count = 0
+
+good_guys = []
+
+while good_count < max_good_count:
+    x, y = randint(0, 49), randint(0, 49)
+    if Map[x][y] == 0:
+        good_count += 1
+        good_guys.append(Good(y, x, 'M', randint(10, 255), 1))
 
 while run:
     for event in pygame.event.get():
@@ -69,10 +102,15 @@ while run:
                 pygame.draw.rect(screen, BLUE, pygame.Rect(j*16, i*16, 16, 16))
             elif Map[i][j] == 2:
                 pygame.draw.rect(screen, GREEN, pygame.Rect(j*16, i*16, 16, 16))
-                screen.blit(tree, [j*16, i*16])
+                pygame.draw.polygon(screen, DGREEN, [(j*16, i*16+16), (j*16+8, i*16), (j*16+16, i*16+16)])
             elif Map[i][j] == 3:
                 pygame.draw.rect(screen, GREEN, pygame.Rect(j*16, i*16, 16, 16))
-                screen.blit(bush, [j*16, i*16])
+                pygame.draw.line(screen, DGREEN, [j*16+8, i*16+16], [j*16+8, i*16], 2)
+                pygame.draw.line(screen, DGREEN, [j*16+8, i*16+16], [j*16, i*16], 2)
+                pygame.draw.line(screen, DGREEN, [j*16+8, i*16+16], [j*16+16, i*16], 2)
+
+    for guy in good_guys:
+        guy.draw()
 
     pygame.display.flip()
     clock.tick(60)
