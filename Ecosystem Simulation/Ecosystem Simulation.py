@@ -53,6 +53,7 @@ class Good():
         self.thirst = 100
         self.gender = gender
         self.speed = speed
+        self.next_delay = 0
         if gender == 'M':
             self.color = color
         elif gender == 'F':
@@ -68,25 +69,38 @@ class Good():
         self.rect.x += trn_x*16
         self.rect.y += trn_y*16
 
-    def move_random(self):
+    def random_move(self):
         trn_x = 0
         trn_y = 0
-        while trn_x == trn_y == 0:
+        while True:
             trn_x = randint(-1, 1)
             trn_y = randint(-1, 1)
-        self.rect.x += trn_x*16
-        self.rect.y += trn_y*16
+            pre_x = (self.rect.x//16)+trn_x
+            pre_y = (self.rect.y//16)+trn_y
+            try:
+                if not(trn_y == 0 and trn_x == 0) and (Map[pre_y][pre_x] == 0 or Map[pre_y][pre_x] == 3) and pre_x == abs(pre_x) and pre_y == abs(pre_y):
+                    break
+            except:
+                pass
+        self.move(trn_x, trn_y)
+
+    def next_delay_calc(self):
+        if pygame.time.get_ticks() >= self.next_delay:
+            self.next_delay = pygame.time.get_ticks() + self.speed
+            return True
+        return False
 
 max_good_count = 1
 good_count = 0
-
+good_pos = []
 good_guys = []
 
 while good_count < max_good_count:
     x, y = randint(0, 49), randint(0, 49)
-    if Map[x][y] == 0:
+    if Map[x][y] == 0 and not((y, x) in good_pos):
         good_count += 1
-        good_guys.append(Good(y, x, 'M', randint(10, 255), 1))
+        good_pos.append((y, x))
+        good_guys.append(Good(y, x, 'M', randint(10, 255), 500))
 
 while run:
     for event in pygame.event.get():
@@ -111,6 +125,8 @@ while run:
 
     for guy in good_guys:
         guy.draw()
+        if guy.next_delay_calc():
+            guy.random_move()
 
     pygame.display.flip()
     clock.tick(60)
