@@ -1,4 +1,5 @@
 import pygame
+from collections import deque
 from random import randint, choice
 
 pygame.init()
@@ -54,6 +55,8 @@ class Good():
         self.gender = gender
         self.speed = speed
         self.next_delay = 0
+        self.find = 'bush'
+        self.finding = []
         if gender == 'M':
             self.color = color
         elif gender == 'F':
@@ -65,7 +68,7 @@ class Good():
         elif self.gender == 'F':
             pygame.draw.circle(screen, (self.color, self.color, self.color), self.rect.center, 8, 3)
 
-    def move(self, trn_x, trn_y):
+    def walk(self, trn_x, trn_y):
         self.rect.x += trn_x*16
         self.rect.y += trn_y*16
 
@@ -82,13 +85,50 @@ class Good():
                     break
             except:
                 pass
-        self.move(trn_x, trn_y)
+        self.walk(trn_x, trn_y)
+ 
+    def move(self, trn_x, trn_y):
+        pre_x = (self.rect.x//16)+trn_x
+        pre_y = (self.rect.y//16)+trn_y
+        try:
+            if (Map[pre_y][pre_x] == 0 or Map[pre_y][pre_x] == 3) and pre_x == abs(pre_x) and pre_y == abs(pre_y):
+                self.rect.x += trn_x*16
+                self.rect.y += trn_y*16
+            else:
+                self.random_move()
+        except:
+            self.random_move()
 
     def next_delay_calc(self):
         if pygame.time.get_ticks() >= self.next_delay:
             self.next_delay = pygame.time.get_ticks() + self.speed
             return True
         return False
+
+    def path_find(self, goal):
+        directions = [(-1, 0),
+                      (1, 0),
+                      (0, -1),
+                      (0, 1),
+                      (-1, -1),
+                      (-1, 1),
+                      (1, -1),
+                      (1, 1)]
+
+        rows, cols = 50, 50
+        queue = deque([((self.rect.x//16, self.rect.y//16), [])])
+        visited = set([(self.rect.x//16, self.rect.y//16)])
+
+        while queue:
+            (x, y), path = queue.popleft()
+            if (x, y) == goal:
+                return path
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < rows and 0 <= ny < cols and (grid[nx][ny] == 0 or grid[nx][ny] == 3) and (nx, ny) not in visited:
+                    visited.add((nx, ny))
+                    queue.append(((nx, ny), path + [(dx, dy)]))
+        return []
 
 max_good_count = 1
 good_count = 0
