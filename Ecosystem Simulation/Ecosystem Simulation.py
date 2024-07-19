@@ -1,4 +1,5 @@
 import pygame
+from math import*
 from collections import deque
 from random import randint, choice
 
@@ -30,10 +31,11 @@ for i in range(50):
         else:
             Map[-1].append(1)
 
-max_bush_count = 50 
+max_bush_count = 50
 max_tree_count = 75
 bush_count = 0
 tree_count = 0
+bushes = []
 
 while tree_count < max_tree_count:
     x, y = randint(0, 49), randint(0, 49)
@@ -46,14 +48,16 @@ while bush_count < max_bush_count:
     if Map[x][y] == 0:
         bush_count += 1
         Map[x][y] = 3
+        bushes.append([y, x])
 
 class Good():
-    def __init__(self, x, y, gender, color, speed):
+    def __init__(self, x, y, gender, color, speed, Range):
         self.rect = pygame.Rect(x*16, y*16, 16, 16)
         self.hunger = 100
         self.thirst = 100
         self.gender = gender
         self.speed = speed
+        self.range = pygame.Rect(self.rect.center, ((Range**2)*16, (Range**2)*16))
         self.next_delay = 0
         self.find = 'bush'
         self.finding = []
@@ -87,13 +91,13 @@ class Good():
                 pass
         self.walk(trn_x, trn_y)
  
-    def move(self, trn_x, trn_y):
-        pre_x = (self.rect.x//16)+trn_x
-        pre_y = (self.rect.y//16)+trn_y
+    def move(self, trn):
+        pre_x = (self.rect.x//16)+trn[0]
+        pre_y = (self.rect.y//16)+trn[1]
         try:
             if (Map[pre_y][pre_x] == 0 or Map[pre_y][pre_x] == 3) and pre_x == abs(pre_x) and pre_y == abs(pre_y):
-                self.rect.x += trn_x*16
-                self.rect.y += trn_y*16
+                self.rect.x += trn[0]*16
+                self.rect.y += trn[1]*16
             else:
                 self.random_move()
         except:
@@ -106,29 +110,36 @@ class Good():
         return False
 
     def path_find(self, goal):
-        directions = [(-1, 0),
-                      (1, 0),
-                      (0, -1),
-                      (0, 1),
-                      (-1, -1),
-                      (-1, 1),
-                      (1, -1),
-                      (1, 1)]
-
-        rows, cols = 50, 50
-        queue = deque([((self.rect.x//16, self.rect.y//16), [])])
-        visited = set([(self.rect.x//16, self.rect.y//16)])
-
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        start = (self.rect.x // 16, self.rect.y // 16)
+        goal = (goal[0] // 16, goal[1] // 16)
+        queue = deque([(start, [])])
+        visited = set([start])
         while queue:
             (x, y), path = queue.popleft()
             if (x, y) == goal:
                 return path
             for dx, dy in directions:
                 nx, ny = x + dx, y + dy
-                if 0 <= nx < rows and 0 <= ny < cols and (grid[nx][ny] == 0 or grid[nx][ny] == 3) and (nx, ny) not in visited:
+                if 0 <= nx < 50 and 0 <= ny < 50 and (Map[ny][nx] == 0 or Map[ny][nx] == 3) and (nx, ny) not in visited:
                     visited.add((nx, ny))
                     queue.append(((nx, ny), path + [(dx, dy)]))
         return []
+
+    def find_near_bush(self):
+        found_bush = []
+        for i in bushes:
+            bush_rect = pygame.Rect([i[0]*16, i[1]*16], [16, 16])
+            if bush_rect.colliderect(self.range):
+                found_bush.append(bush_rect)
+        closest = None
+        distance = 10000
+        for i in found_bush:
+            calc_dis = sqrt((i.centerx-self.rect.centerx)**2+(i.centery-self.rect.centery)**2)
+            if calc_dis < distance:
+                distance = calc_dis
+                closest = [i.x//16, i.y//16]
+        return closest
 
 max_good_count = 1
 good_count = 0
@@ -140,7 +151,7 @@ while good_count < max_good_count:
     if Map[x][y] == 0 and not((y, x) in good_pos):
         good_count += 1
         good_pos.append((y, x))
-        good_guys.append(Good(y, x, 'M', randint(10, 255), 500))
+        good_guys.append(Good(y, x, 'M', randint(10, 255), 500, 3))
 
 while run:
     for event in pygame.event.get():
@@ -166,7 +177,11 @@ while run:
     for guy in good_guys:
         guy.draw()
         if guy.next_delay_calc():
-            guy.random_move()
+            print(guy.find_near_bush())
+            if guy.find_near_bush():
+                guy.move(guy.path_find(guy.find_near_bush())[0])
+            else:
+                guy.random_move()
 
     pygame.display.flip()
     clock.tick(60)
