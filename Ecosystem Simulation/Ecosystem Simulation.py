@@ -55,7 +55,7 @@ while bush_count < max_bush_count:
 for i in range(50):
     for j in range(50):
         if Map[i][j] == 1:
-            waters.append(pygame.Rect(y*16, x*16, 16, 16))
+            waters.append(pygame.Rect(j*16, i*16, 16, 16))
 
 for i in range(50):
     for j in range(50):
@@ -163,7 +163,7 @@ class Good():
         found_water = []
         for i in water_surr:
             if i.colliderect(self.range):
-                water_surr.append(i)
+                found_water.append(i)
         closest = None
         distance = 10000
         for i in found_water:
@@ -205,13 +205,19 @@ while run:
                 pygame.draw.line(screen, DGREEN, [j*16+8, i*16+16], [j*16+8, i*16], 2)
                 pygame.draw.line(screen, DGREEN, [j*16+8, i*16+16], [j*16, i*16], 2)
                 pygame.draw.line(screen, DGREEN, [j*16+8, i*16+16], [j*16+16, i*16], 2)
-    for i in water_surr:
-        pygame.draw.rect(screen, (255, 241, 0), i)
 
     for guy in good_guys:
         guy.draw()
         if guy.next_delay_calc():
-            pass
+            water_range = guy.find_near_water()
+            bush_range = guy.find_near_bush()
+            if guy.thirst == 100 and guy.hunger == 100:
+                guy.random_move()
+            elif guy.thirst < guy.hunger and water_range:
+                guy.move(guy.path_find(water_range)[0])
+                
+            elif guy.thirst >= guy.hunger and bush_range:
+                guy.move(guy.path_find(bush_range)[0])
 
     pygame.display.flip()
     clock.tick(60)
